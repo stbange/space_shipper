@@ -16,9 +16,18 @@ concurrency:
 jobs:
   linux:
     name: Linux (build + tests)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
+
+      - name: Install SDL3 build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libx11-dev libxext-dev libxrandr-dev libxcursor-dev \
+            libxfixes-dev libxi-dev libxkbcommon-dev libwayland-dev \
+            libegl-dev libgl-dev libasound2-dev libpulse-dev \
+            libudev-dev libdbus-1-dev
 
       - name: Configure headless tests
         run: cmake --preset tests
@@ -67,7 +76,9 @@ jobs:
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force build/package | Out-Null
-          Copy-Item build/native/space_shipper.exe build/package/
+          Get-ChildItem -Recurse build/native -Filter space_shipper.exe |
+            Select-Object -First 1 |
+            ForEach-Object { Copy-Item $_.FullName build/package/ }
           Get-ChildItem -Recurse build/native -Filter SDL3.dll |
             Select-Object -First 1 |
             ForEach-Object { Copy-Item $_.FullName build/package/ }
@@ -93,7 +104,9 @@ jobs:
 
       - name: Install emscripten 6.0.2
         run: |
-          git clone --depth 1 https://github.com/emscripten-core/emsdk.git
+          if [ ! -d emsdk/.git ]; then
+            git clone --depth 1 https://github.com/emscripten-core/emsdk.git
+          fi
           ./emsdk/emsdk install 6.0.2
           ./emsdk/emsdk activate 6.0.2
           source ./emsdk/emsdk_env.sh
