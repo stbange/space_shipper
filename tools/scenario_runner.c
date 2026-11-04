@@ -28,6 +28,46 @@
 #include <stdlib.h>
 #include <string.h>
 
+#ifdef _WIN32
+#include <direct.h>
+#include <process.h>
+#define FR_SEP "\\"
+#else
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <unistd.h>
+#define FR_SEP "/"
+#endif
+
+static char save_dir[320];
+
+static void init_save_dir(void)
+{
+    const char *base = getenv("TMPDIR");
+    if (!base || !*base) base = getenv("TEMP");
+    if (!base || !*base) base = ".";
+    snprintf(save_dir, sizeof(save_dir), "%s%sfr_%d", base, FR_SEP,
+#ifdef _WIN32
+             _getpid()
+#else
+             (int)getpid()
+#endif
+    );
+#ifdef _WIN32
+    _mkdir(save_dir);
+#else
+    mkdir(save_dir, 0700);
+#endif
+}
+
+static const char *resolve_path(const char *arg)
+{
+    static char buf[512];
+    if (arg[0] == '/' || (arg[0] != '\0' && arg[1] == ':')) return arg;
+    snprintf(buf, sizeof(buf), "%s%s%s", save_dir, FR_SEP, arg);
+    return buf;
+}
+
 #include "../src/game/game.h"
 
 static FrGame game;
@@ -158,6 +198,7 @@ int main(int argc, char **argv)
     uint64_t seed = 20261104ULL;
     if (argc > 2) seed = strtoull(argv[2], NULL, 10);
     fr_game_init(&game, seed);
+    init_save_dir();
 
     FILE *f = fopen(argv[1], "r");
     if (!f) {
@@ -304,9 +345,9 @@ int main(int argc, char **argv)
                 }
             }
         } else if (strcmp(cmd, "save") == 0) {
-            fr_game_save(&game, a1);
+            fr_game_save(&game, resolve_path(a1));
         } else if (strcmp(cmd, "load") == 0) {
-            if (fr_game_load(&game, a1) != 0) {
+            if (fr_game_load(&game, resolve_path(a1)) != 0) {
                 printf("line %d: load failed: %s\n", lineno, a1);
                 failures++;
             }

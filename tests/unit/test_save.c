@@ -80,12 +80,13 @@ void test_resume_deterministic_after_load(void)
 
 void test_file_round_trip(void)
 {
-    const char *path = "/tmp/kilo/fr_save_test.json";
+    const char *path = "fr_save_test.json";
     TEST_ASSERT_EQUAL_INT(0, fr_save_write_file(path, &w, &p));
     FrWorld w2;
     FrPlayerState p2;
     TEST_ASSERT_EQUAL_INT(0, fr_save_read_file(path, &w2, &p2));
     TEST_ASSERT_EQUAL_INT(w.ship.money, w2.ship.money);
+    remove(path);
 }
 
 void test_bad_json_rejected(void)

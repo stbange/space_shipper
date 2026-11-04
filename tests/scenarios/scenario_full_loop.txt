@@ -64,8 +64,8 @@ press ESC
 expect state WALK
 
 # Save and load the mid-game state.
-save /tmp/kilo/fr_full_loop.json
-load /tmp/kilo/fr_full_loop.json
+save fr_full_loop.json
+load fr_full_loop.json
 expect money 20215
 expect docked 1
 expect port 1
