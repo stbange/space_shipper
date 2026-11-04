@@ -1,0 +1,72 @@
+# scenario_full_loop.txt - end-to-end trading loop, fully deterministic.
+# Spawn -> accept contract -> depart -> travel (costs accrue) -> dock ->
+# deliver -> walk to the station -> return to the ship -> trade -> save/load.
+newgame
+expect state WALK
+expect port 0
+expect docked 1
+expect money 25000
+
+# Accept the first offered contract: 22 units destined for Novapolis (port 1).
+contract accept 0
+expect contract_0_state 1
+expect hold_used 22
+
+# Depart for Novapolis.
+navigate 1
+expect travel_active 1
+expect travel_to 1
+expect port -1
+expect fuel 822
+
+# Run the leg through the game layer; arrival triggers the docking sequence.
+tick 5000
+expect state DOCKING
+expect port 1
+expect day 5
+
+# Complete the docking approach.
+dock complete
+expect state WALK
+expect docked 1
+expect hold_used 0
+expect money 20255
+expect contract_0_state 2
+
+# Walk out through the airlock onto the station concourse.
+deck 2
+teleport 102.5 30.5 0
+press E
+expect on_station 1
+expect state WALK
+
+# Contract board is reachable on the station (terminals face north).
+teleport 22.5 8.5 -1.5708
+press E
+expect state CONTRACTS
+press ESC
+expect state WALK
+
+# Return aboard via the ramp.
+teleport 23.5 29.5 0
+press E
+expect on_station 0
+
+# Free trading round-trip at the port market (cargo console).
+teleport 72.5 31.5 3.14159
+press E
+expect state MARKET
+market buy 0 10
+expect hold_0 >= 10
+market sell 0 10
+expect hold_0 0
+press ESC
+expect state WALK
+
+# Save and load the mid-game state.
+save /tmp/kilo/fr_full_loop.json
+load /tmp/kilo/fr_full_loop.json
+expect money 20215
+expect docked 1
+expect port 1
+expect state WALK

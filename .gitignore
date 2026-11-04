@@ -1,0 +1,11 @@
+# Build outputs
+build/
+out/
+
+# Save games
+savegame*.json
+*.save
+
+# IDE / tooling
+compile_commands.json
+.cache/

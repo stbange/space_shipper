@@ -1,0 +1,42 @@
+# scenario_shipgen_explore.txt - first-person walking on generated decks.
+newgame
+expect state WALK
+
+# Walk east along the command deck spine.
+deck 0
+teleport 60 31.5 0
+input W on
+frames 60
+input W off
+expect pos_x > 61
+expect pos_y 31.5
+
+# Turn with the keyboard and walk again.
+input RIGHT on
+frames 30
+input RIGHT off
+input W on
+frames 60
+input W off
+frames 1
+
+# Mouse look changes heading deterministically.
+teleport 60 31.5 0
+frames 1
+
+# Turbolift teleportation changes decks (all decks walkable at spine).
+deck 3
+teleport 12 31.5 0
+input W on
+frames 30
+input W off
+expect pos_x > 12
+
+# Doors open as the player approaches (walk into a room wall line).
+deck 1
+teleport 60 31.5 1.5708
+input W on
+frames 60
+input W off
+frames 1
+expect state WALK

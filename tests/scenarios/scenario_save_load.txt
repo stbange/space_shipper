@@ -1,0 +1,20 @@
+# scenario_save_load.txt - save/load round trip mid-game.
+newgame
+market buy 2 30
+expect hold_2 30
+navigate 2
+expect travel_active 1
+
+save /tmp/kilo/fr_save_load.json
+load /tmp/kilo/fr_save_load.json
+expect travel_active 1
+expect travel_to 2
+expect hold_2 30
+expect state WALK
+
+tick 300
+expect tick >= 300
+save /tmp/kilo/fr_save_load2.json
+load /tmp/kilo/fr_save_load2.json
+expect tick >= 300
+expect travel_active 1

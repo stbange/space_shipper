@@ -1,0 +1,5 @@
+# golden_docking.txt - docking approach view at fixed start.
+newgame
+navigate 3
+tick 100000
+golden tests/golden/docking.txt

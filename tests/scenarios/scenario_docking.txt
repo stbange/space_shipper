@@ -1,0 +1,43 @@
+# scenario_docking.txt - real-time docking sequence physics.
+newgame
+navigate 3
+tick 100000
+expect state DOCKING
+expect port 3
+
+# Fixed approach start.
+expect dock_x 30
+expect dock_y 25
+expect dock_angle 0
+
+# Rotation input turns the ship.
+input D on
+frames 10
+input D off
+expect dock_angle > 0.2
+
+# Thrust moves the ship; drag keeps the speed bounded.
+input W on
+frames 30
+input W off
+expect dock_x > 40
+expect state DOCKING
+
+# Coast for a while: still under way, no dock yet (too fast).
+frames 30
+expect state DOCKING
+
+# A failure resets to the approach start when drifting out of bounds:
+# burn hard toward the field edge until the hull scrape resets.
+input W on
+frames 1200
+input W off
+frames 120
+expect state DOCKING
+expect dock_x <= 156
+
+# Deterministic completion.
+dock complete
+expect state WALK
+expect docked 1
+expect port 3

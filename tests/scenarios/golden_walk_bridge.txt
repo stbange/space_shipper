@@ -1,0 +1,5 @@
+# golden_walk_bridge.txt - first-person view from the bridge chamber.
+newgame
+deck 0
+teleport 95 31.5 0
+golden tests/golden/walk_bridge.txt

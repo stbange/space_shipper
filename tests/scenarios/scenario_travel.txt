@@ -1,0 +1,32 @@
+# scenario_travel.txt - navigation, time compression and arrival.
+newgame
+expect state WALK
+expect port 0
+expect docked 1
+expect money 25000
+expect fuel 1200
+
+navigate 1
+expect travel_active 1
+expect travel_to 1
+expect port -1
+expect docked 0
+expect fuel < 1200
+
+# Burn through the leg at maximum compression (64x handled by frames).
+speed 64
+frames 100
+
+# Finish the leg deterministically through the game layer.
+tick 100000
+expect port 1
+expect travel_active 0
+expect state DOCKING
+expect day >= 4
+expect fuel > 0
+
+# Docking view determinism: ship starts at a fixed approach point.
+expect dock_x 30
+expect dock_y 25
+frames 60
+expect dock_x > 30

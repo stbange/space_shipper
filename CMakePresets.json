@@ -1,0 +1,40 @@
+{
+    "version": 6,
+    "cmakeMinimumRequired": {"major": 3, "minor": 24, "patch": 0},
+    "configurePresets": [
+        {
+            "name": "default",
+            "displayName": "Native (Linux/Windows)",
+            "binaryDir": "${sourceDir}/build/native",
+            "cacheVariables": {"CMAKE_BUILD_TYPE": "Debug"}
+        },
+        {
+            "name": "tests",
+            "displayName": "Headless tests only (no SDL3)",
+            "binaryDir": "${sourceDir}/build/tests",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Debug",
+                "FR_BUILD_GAME": "OFF"
+            }
+        },
+        {
+            "name": "web",
+            "displayName": "Web (emscripten)",
+            "binaryDir": "${sourceDir}/build/web",
+            "cacheVariables": {"CMAKE_BUILD_TYPE": "Release"},
+            "toolchainFile": "$env{EMSDK}/upstream/emscripten/cmake/Modules/Platform/Emscripten.cmake"
+        }
+    ],
+    "buildPresets": [
+        {"name": "default", "configurePreset": "default"},
+        {"name": "tests", "configurePreset": "tests"},
+        {"name": "web", "configurePreset": "web", "targets": ["space_shipper"]}
+    ],
+    "testPresets": [
+        {
+            "name": "tests",
+            "configurePreset": "tests",
+            "output": {"outputOnFailure": true}
+        }
+    ]
+}
