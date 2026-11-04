@@ -1,0 +1,162 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  linux:
+    name: Linux (build + tests)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure headless tests
+        run: cmake --preset tests
+
+      - name: Build tests
+        run: cmake --build --preset tests -j
+
+      - name: Run tests
+        run: ctest --preset tests
+
+      - name: Configure native game
+        run: cmake --preset default
+
+      - name: Build native game
+        run: cmake --build --preset default -j
+
+      - name: Upload Linux binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: space_shipper-linux
+          path: build/native/space_shipper
+          if-no-files-found: error
+
+  windows:
+    name: Windows (build + tests)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure headless tests
+        run: cmake --preset tests
+
+      - name: Build tests
+        run: cmake --build --preset tests -j
+
+      - name: Run tests
+        run: ctest --preset tests
+
+      - name: Configure native game
+        run: cmake --preset default
+
+      - name: Build native game
+        run: cmake --build --preset default -j
+
+      - name: Collect game binaries
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force build/package | Out-Null
+          Copy-Item build/native/space_shipper.exe build/package/
+          Get-ChildItem -Recurse build/native -Filter SDL3.dll |
+            Select-Object -First 1 |
+            ForEach-Object { Copy-Item $_.FullName build/package/ }
+
+      - name: Upload Windows binaries
+        uses: actions/upload-artifact@v4
+        with:
+          name: space_shipper-windows
+          path: build/package/
+          if-no-files-found: error
+
+  web:
+    name: Web (emscripten)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Cache emsdk
+        uses: actions/cache@v4
+        with:
+          path: emsdk
+          key: emsdk-6.0.2-linux-x64
+
+      - name: Install emscripten 6.0.2
+        run: |
+          git clone --depth 1 https://github.com/emscripten-core/emsdk.git
+          ./emsdk/emsdk install 6.0.2
+          ./emsdk/emsdk activate 6.0.2
+          source ./emsdk/emsdk_env.sh
+          echo "EMSDK=$EMSDK" >> "$GITHUB_ENV"
+          echo "$EMSDK/upstream/emscripten" >> "$GITHUB_PATH"
+          echo "$(dirname "$(command -v node)")" >> "$GITHUB_PATH"
+
+      - name: Configure web game
+        run: cmake --preset web
+
+      - name: Build web game
+        run: cmake --build --preset web -j
+
+      - name: Add site index
+        run: |
+          printf '%s\n' \
+            '<!DOCTYPE html>' \
+            '<html><head>' \
+            '  <meta charset="utf-8">' \
+            '  <meta http-equiv="refresh" content="0;url=space_shipper.html">' \
+            '  <title>space_shipper</title>' \
+            '</head><body>' \
+            '  <p><a href="space_shipper.html">Launch space_shipper</a></p>' \
+            '</body></html>' > build/web/index.html
+
+      - name: Upload web build
+        uses: actions/upload-artifact@v4
+        with:
+          name: space_shipper-web
+          path: |
+            build/web/index.html
+            build/web/space_shipper.html
+            build/web/space_shipper.js
+            build/web/space_shipper.wasm
+          if-no-files-found: error
+
+  deploy-pages:
+    name: Deploy web build to GitHub Pages
+    needs: web
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - name: Download web build
+        uses: actions/download-artifact@v4
+        with:
+          name: space_shipper-web
+          path: site
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v4
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+      - name: Deploy to GitHub Pages
+        id: deploy
+        uses: actions/deploy-pages@v4

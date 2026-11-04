@@ -12,10 +12,16 @@ endif()
 option(FR_BUILD_GAME "Build the SDL3/OpenGL game executable" ON)
 option(FR_BUILD_TESTS "Build unit tests and scenario runner" ON)
 
-add_compile_options(-Wall -Wextra -Wno-unused-parameter)
+# Warning flags: GCC/Clang and MSVC use incompatible options.
+add_compile_options(
+    "$<$<COMPILE_LANG_AND_ID:C,GNU,Clang>:-Wall;-Wextra;-Wno-unused-parameter>"
+)
 
-# Warnings are errors only for first-party code.
-set(FR_STRICT_OPTS "$<$<COMPILE_LANG_AND_ID:C,GNU,Clang>:-Werror>")
+# Warnings are errors only for first-party code (GCC/Clang); MSVC gets /W4.
+set(FR_STRICT_OPTS
+    "$<$<COMPILE_LANG_AND_ID:C,GNU,Clang>:-Werror>"
+    "$<$<COMPILE_LANG_AND_ID:C,MSVC>:/W4>"
+)
 
 # ---------------------------------------------------------------- libraries
 
@@ -30,7 +36,8 @@ add_library(freighter_sim STATIC
 )
 target_include_directories(freighter_sim PUBLIC src/sim third_party/cjson)
 target_compile_options(freighter_sim PRIVATE ${FR_STRICT_OPTS})
-set_source_files_properties(third_party/cjson/cJSON.c PROPERTIES COMPILE_OPTIONS "-w")
+set_source_files_properties(third_party/cjson/cJSON.c PROPERTIES COMPILE_OPTIONS
+    "$<$<COMPILE_LANG_AND_ID:C,GNU,Clang>:-w>;$<$<COMPILE_LANG_AND_ID:C,MSVC>:/w>")
 
 # ASCII renderer into a character grid (no platform dependencies).
 add_library(freighter_render STATIC
@@ -38,7 +45,8 @@ add_library(freighter_render STATIC
     src/render/raster3d.c
 )
 target_include_directories(freighter_render PUBLIC src/render)
-target_compile_options(freighter_render PRIVATE ${FR_STRICT_OPTS} -O2)
+target_compile_options(freighter_render PRIVATE ${FR_STRICT_OPTS}
+    "$<$<COMPILE_LANG_AND_ID:C,GNU,Clang>:-O2>")
 target_link_libraries(freighter_render PUBLIC freighter_sim)
 if(UNIX AND NOT APPLE)
     target_link_libraries(freighter_render PUBLIC m)
@@ -93,7 +101,8 @@ if(FR_BUILD_TESTS)
 
     add_library(unity STATIC third_party/unity/src/unity.c)
     target_include_directories(unity PUBLIC third_party/unity/src)
-    set_source_files_properties(third_party/unity/src/unity.c PROPERTIES COMPILE_OPTIONS "-w")
+    set_source_files_properties(third_party/unity/src/unity.c PROPERTIES COMPILE_OPTIONS
+        "$<$<COMPILE_LANG_AND_ID:C,GNU,Clang>:-w>;$<$<COMPILE_LANG_AND_ID:C,MSVC>:/w>")
 
     foreach(t rng shipgen world save render)
         add_executable(test_${t} tests/unit/test_${t}.c)
